@@ -8,7 +8,7 @@ from .devices import Device
 class Hat:
     """Allows enumeration of devices which are connected to the hat"""
 
-    def __init__(self, device=None, debug=False):
+    def __init__(self, device=None, reset_gpio=4, boot0_gpio=22, debug=False):
         """Hat
 
         :param device: Optional string containing path to Build HAT serial device
@@ -18,7 +18,7 @@ class Hat:
         if device is None:
             Device._setup(debug=debug)
         else:
-            Device._setup(device=device, debug=debug)
+             Device._setup(debug=debug, reset_gpio=reset_gpio, boot0_gpio=boot0_gpio)
 
     def get(self):
         """Get devices which are connected or disconnected

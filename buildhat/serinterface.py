@@ -74,16 +74,21 @@ class BuildHAT:
     RESET_GPIO_NUMBER = 4
     BOOT0_GPIO_NUMBER = 22
 
-    def __init__(self, firmware, signature, version, device="/dev/serial0", debug=False):
+    def __init__(self, firmware, signature, version, device="/dev/serial0", reset_gpio=4, 
+        boot0_gpio=22, debug=False):
         """Interact with Build HAT
 
         :param firmware: Firmware file
         :param signature: Signature file
         :param version: Firmware version
         :param device: Serial device to use
+        :param reset_gpio: Rest GPIO#
+        :param boot0_gpio: Boot GPIO#
         :param debug: Optional boolean to log debug information
         :raises BuildHATError: Occurs if can't find HAT
         """
+        self.reset_gpio = reset_gpio
+        self.boot0_gpio = boot0_gpio
         self.cond = Condition()
         self.state = HatState.OTHER
         self.connections = []
@@ -178,8 +183,8 @@ class BuildHAT:
 
     def resethat(self):
         """Reset the HAT"""
-        reset = DigitalOutputDevice(BuildHAT.RESET_GPIO_NUMBER)
-        boot0 = DigitalOutputDevice(BuildHAT.BOOT0_GPIO_NUMBER)
+        reset = DigitalOutputDevice(self.reset_gpio)
+        boot0 = DigitalOutputDevice(self.boot0_gpio)
         boot0.off()
         reset.off()
         time.sleep(0.01)
