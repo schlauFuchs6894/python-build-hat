@@ -18,6 +18,11 @@ def wait_for_event(evt_q: Queue, hat_id: int, expected: str, timeout: float = 10
         except Empty:
             continue
 
+        if evt.get("hat") == hat_id and evt.get("event") == "error":
+            for item in buffer:
+                evt_q.put(item)
+            raise RuntimeError(f"HAT {hat_id} error: {evt.get('message')}")
+
         if evt.get("hat") == hat_id and evt.get("event") == expected:
             for item in buffer:
                 evt_q.put(item)
@@ -63,6 +68,9 @@ def main():
     print("HAT 2 ready.")
 
     try:
+        time.sleep(1.0)
+        drain_events(hat2_evt_q, duration=1.0)
+
         wait_for_event(hat1_evt_q, 1, "ready", timeout=20.0)
         wait_for_event(hat2_evt_q, 2, "ready", timeout=20.0)
         print("Both HAT workers are ready.")
