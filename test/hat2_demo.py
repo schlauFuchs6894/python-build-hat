@@ -6,6 +6,7 @@ from queue import Empty
 from buildhat import Hat, ColorDistanceSensor, Motor
 
 def run_hat2(cmd_q: Queue, evt_q: Queue) -> None:
+    print(f"[HAT2] process started, PID={os.getpid()}", flush=True)
     try:
         Hat(
             device="/dev/ttyAMA4",
@@ -13,7 +14,7 @@ def run_hat2(cmd_q: Queue, evt_q: Queue) -> None:
             boot0_gpio=24,
             debug=True,
         )
-
+        print(f"[HAT2] init SensorS and Actors")
         sensor_d = ColorDistanceSensor("D")
         motor_a = Motor("A")
         motor_a.set_default_speed(30)
