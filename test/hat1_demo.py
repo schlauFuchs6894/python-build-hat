@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 from multiprocessing import Queue
 from queue import Empty
 
@@ -10,6 +11,7 @@ def run_hat1(cmd_q: Queue, evt_q: Queue) -> None:
     Worker process for Build HAT 1.
     Sensor on port D, motor on port A.
     """
+    print(f"[HAT1] process started, PID={os.getpid()}", flush=True)
     Hat(
         device="/dev/ttyAMA0",
         reset_gpio=4,
