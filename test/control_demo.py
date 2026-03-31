@@ -53,7 +53,14 @@ def main():
     p2 = Process(target=run_hat2, args=(hat2_cmd_q, hat2_evt_q), daemon=True)
 
     p1.start()
+    wait_for_event(hat1_evt_q, 1, "ready", timeout=20.0)
+    print("HAT 1 ready.")
+
+    time.sleep(2.0)
+
     p2.start()
+    wait_for_event(hat2_evt_q, 2, "ready", timeout=20.0)
+    print("HAT 2 ready.")
 
     try:
         wait_for_event(hat1_evt_q, 1, "ready", timeout=20.0)

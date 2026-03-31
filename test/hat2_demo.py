@@ -5,18 +5,21 @@ from queue import Empty
 
 from buildhat import Hat, ColorDistanceSensor, Motor
 
-
 def run_hat2(cmd_q: Queue, evt_q: Queue) -> None:
     """
     Worker process for Build HAT 2.
     Sensor on port D, motor on port A.
     """
-    Hat(
-        device="/dev/ttyAMA4",
-        reset_gpio=25,
-        boot0_gpio=24,
-        debug=False,
-    )
+    try:
+        Hat(
+            device="/dev/ttyAMA4",
+            reset_gpio=25,
+            boot0_gpio=24,
+            debug=False,
+        )
+    except Exception as exc:
+        evt_q.put({"hat": 2, "event": "error", "message": f"init failed: {exc}"})
+        return
 
     sensor_d = ColorDistanceSensor("D")
     motor_a = Motor("A")
