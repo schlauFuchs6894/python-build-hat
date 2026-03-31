@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os
+import os, sys, traceback
 from multiprocessing import Queue
 from queue import Empty
 
@@ -12,12 +12,12 @@ def run_hat1(cmd_q: Queue, evt_q: Queue) -> None:
     Sensor on port D, motor on port A.
     """
     print(f"[HAT1] process started, PID={os.getpid()}", flush=True)
-    Hat(
-        device="/dev/ttyAMA0",
-        reset_gpio=4,
-        boot0_gpio=22,
-        debug=False,
-    )
+    try:
+        Hat(device="/dev/ttyAMA0", reset_gpio=4, boot0_gpio=22, debug=True)
+    except Exception as exc:
+        traceback.print_exc()
+        evt_q.put({"hat": 1, "event": "error", "message": f"{type(exc).__name__}: {exc}"})
+        return
 
     sensor_d = ColorDistanceSensor("D")
     motor_a = Motor("A")

@@ -192,8 +192,19 @@ class BuildHAT:
         time.sleep(0.01)
         boot0.close()
         reset.close()
+        # Force gpiozero to release the underlying GPIO chip handle.
+        # Without this, the chip stays open at the process level and blocks
+        # a second BuildHAT init in a sibling process from claiming its pins.
+        try:
+            from gpiozero.pins.lgpio import LGPIOFactory
+            from gpiozero import Device as GZDevice
+            if isinstance(GZDevice.pin_factory, LGPIOFactory):
+                GZDevice.pin_factory.close()
+                GZDevice.pin_factory = None
+        except Exception:
+            pass
         time.sleep(0.5)
-
+        
     def loadfirmware(self, firmware, signature):
         """Load firmware
 
