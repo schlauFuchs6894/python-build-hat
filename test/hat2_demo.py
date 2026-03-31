@@ -11,7 +11,7 @@ def run_hat2(cmd_q: Queue, evt_q: Queue) -> None:
     Worker process for Build HAT 2.
     Sensor on port D, motor on port A.
     """
-    hat = Hat(
+    Hat(
         device="/dev/ttyAMA4",
         reset_gpio=25,
         boot0_gpio=24,
