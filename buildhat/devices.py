@@ -75,8 +75,11 @@ class Device:
 
     @staticmethod
     def _setup(device=SERIAL_DEV, reset_gpio=RESET_GPIO_NUMBER, boot0_gpio=BOOT0_GPIO_NUMBER, debug=False, build_hat = None):
-        if ((Device._instance) and ((build_hat != None ) or (device == None))):
-            return
+        if ((Device._instance) and (build_hat != None)):
+            return build_hat
+        if ((Device._instance) and (device == None)):
+            return Device._instance      
+
         if (
             os.path.isdir(os.path.join(os.getcwd(), "data/"))
             and os.path.isfile(os.path.join(os.getcwd(), "data", "firmware.bin"))
