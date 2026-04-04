@@ -18,7 +18,7 @@ class Hat:
         """
 
         self.led_status = -1
-        device_ = Device._setup(device, reset_gpio, boot0_gpio, debug)
+        self.device_ = Device._setup(device=device, reset_gpio=reset_gpio, boot0_gpio=boot0_gpio, debug=debug)
 
     def get(self):
         """Get devices which are connected or disconnected
@@ -29,14 +29,14 @@ class Hat:
         devices = {}
         for i in range(4):
             name = Device.UNKNOWN_DEVICE
-            if Device._instance.connections[i].typeid in Device._device_names:
-                name = Device._device_names[Device._instance.connections[i].typeid][0]
-                desc = Device._device_names[Device._instance.connections[i].typeid][1]
-            elif Device._instance.connections[i].typeid == -1:
+            if self.device_.connections[i].typeid in Device._device_names:
+                name = Device._device_names[self.device_.connections[i].typeid][0]
+                desc = Device._device_names[self.device_.connections[i].typeid][1]
+            elif self.device_.connections[i].typeid == -1:
                 name = Device.DISCONNECTED_DEVICE
                 desc = ''
-            devices[chr(ord('A') + i)] = {"typeid": Device._instance.connections[i].typeid,
-                                          "connected": Device._instance.connections[i].connected,
+            devices[chr(ord('A') + i)] = {"typeid": self.device_.connections[i].typeid,
+                                          "connected": self.device_.connections[i].connected,
                                           "name": name,
                                           "description": desc}
         return devices

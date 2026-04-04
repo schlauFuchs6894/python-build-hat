@@ -71,6 +71,7 @@ class Device:
         ) or self._typeid == -1:
             raise DeviceError(f'There is not a {type(self).__name__} connected to port {port} (Found {self.name})')
         Device._used[p] = True
+        return self.build_hat
 
     @staticmethod
     def _setup(self, device=SERIAL_DEV, reset_gpio=RESET_GPIO_NUMBER, boot0_gpio=BOOT0_GPIO_NUMBER, debug=False):
