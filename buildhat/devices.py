@@ -73,7 +73,7 @@ class Device:
         Device._used[p] = True
 
     @staticmethod
-    def _setup(self, device=SERIAL_DEV, **kwargs):
+    def _setup(self, device=SERIAL_DEV, reset_gpio=RESET_GPIO_NUMBER, boot0_gpio=BOOT0_GPIO_NUMBER, debug=False):
         if ((Device._instance) and ((self.build_hat != None ) or (device == None))):
             return
         if (
@@ -91,7 +91,7 @@ class Device:
         vfile = open(ver)
         v = int(vfile.read())
         vfile.close()
-        build_hat = BuildHAT(firm, sig, v, **kwargs)
+        build_hat = BuildHAT(firm, sig, v, device, reset_gpio, boot0_gpio, debug)
         if(Device._instance == None):
             Device._instance = build_hat
 
