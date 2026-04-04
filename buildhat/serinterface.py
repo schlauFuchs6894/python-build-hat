@@ -120,6 +120,8 @@ class BuildHAT:
         if device == "/dev/serial0" and os.readlink(device) == "ttyAMA10":
             device = "/dev/ttyAMA0"
         self.ser = serial.Serial(device, 115200, timeout=5)
+
+        print(f"Open: {device}")
         # Check if we're in the bootloader or the firmware
         self.write(b"version\r")
 
@@ -204,6 +206,7 @@ class BuildHAT:
                 GZDevice.pin_factory = None
         except Exception:
             pass
+        print("Reset:")
         time.sleep(0.5)
         
     def loadfirmware(self, firmware, signature):
@@ -267,8 +270,10 @@ class BuildHAT:
         if not self.fin and log:
             if replace != "":
                 logging.debug(f"> {replace}")
+                print(f"> {replace}", flush=True)
             else:
                 logging.debug(f"> {data.decode('utf-8', 'ignore').strip()}")
+                print(f"> {data.decode('utf-8', 'ignore').strip()}")
 
     def read(self):
         """Read data from the serial port of Build HAT
@@ -282,6 +287,9 @@ class BuildHAT:
             pass
         if line != "":
             logging.debug(f"< {line}")
+            print(f"< {line!r}", flush=True)
+        else:
+            print("<")    
         return line
 
     def shutdown(self):
