@@ -58,7 +58,7 @@ class Device:
         if Device._used[p]:
             raise DeviceError("Port already used")
         self.port = p
-        self.build_hat = self._setup(device=device, reset_gpio=reset_gpio, boot0_gpio=boot0_gpio, debug=debug)
+        self.build_hat = self._setup(device=device, reset_gpio=reset_gpio, boot0_gpio=boot0_gpio, debug=debug, build_hat=self.build_hat)
 
         self._simplemode = -1
         self._combimode = -1
@@ -74,8 +74,8 @@ class Device:
         return self.build_hat
 
     @staticmethod
-    def _setup(self, device=SERIAL_DEV, reset_gpio=RESET_GPIO_NUMBER, boot0_gpio=BOOT0_GPIO_NUMBER, debug=False):
-        if ((Device._instance) and ((self.build_hat != None ) or (device == None))):
+    def _setup(device=SERIAL_DEV, reset_gpio=RESET_GPIO_NUMBER, boot0_gpio=BOOT0_GPIO_NUMBER, debug=False, build_hat = None):
+        if ((Device._instance) and ((build_hat != None ) or (device == None))):
             return
         if (
             os.path.isdir(os.path.join(os.getcwd(), "data/"))
