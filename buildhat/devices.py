@@ -11,6 +11,9 @@ from .serinterface import BuildHAT
 
 class Device:
     """Creates a single instance of the buildhat for all devices to use"""
+    SERIAL_DEV =None # "/dev/serial0" # -> /dev/ttyAMA0
+    RESET_GPIO_NUMBER = 4
+    BOOT0_GPIO_NUMBER = 22
 
     _instance = None
     _started = 0
@@ -41,7 +44,7 @@ class Device:
     UNKNOWN_DEVICE = "Unknown"
     DISCONNECTED_DEVICE = "Disconnected"
 
-    def __init__(self, port):
+    def __init__(self, port, device=SERIAL_DEV, reset_gpio=RESET_GPIO_NUMBER, boot0_gpio=BOOT0_GPIO_NUMBER, debug=False):
         """Initialise device
 
         :param port: Port of device
@@ -55,7 +58,8 @@ class Device:
         if Device._used[p]:
             raise DeviceError("Port already used")
         self.port = p
-        Device._setup()
+        self.build_hat = self._setup(device=device, reset_gpio=reset_gpio, boot0_gpio=boot0_gpio, debug=debug)
+
         self._simplemode = -1
         self._combimode = -1
         self._modestr = ""
@@ -69,8 +73,8 @@ class Device:
         Device._used[p] = True
 
     @staticmethod
-    def _setup(**kwargs):
-        if Device._instance:
+    def _setup(self, device=SERIAL_DEV, **kwargs):
+        if ((Device._instance) and ((self.build_hat != None ) or (device == None))):
             return
         if (
             os.path.isdir(os.path.join(os.getcwd(), "data/"))
@@ -87,8 +91,12 @@ class Device:
         vfile = open(ver)
         v = int(vfile.read())
         vfile.close()
-        Device._instance = BuildHAT(firm, sig, v, **kwargs)
+        build_hat = BuildHAT(firm, sig, v, **kwargs)
+        if(Device._instance == None):
+            Device._instance = build_hat
+
         weakref.finalize(Device._instance, Device._instance.shutdown)
+        return build_hat
 
     def __del__(self):
         """Handle deletion of device"""

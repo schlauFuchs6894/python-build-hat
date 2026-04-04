@@ -7,18 +7,18 @@ from .devices import Device
 
 class Hat:
     """Allows enumeration of devices which are connected to the hat"""
+    SERIAL_DEV =None # "/dev/serial0" # -> /dev/ttyAMA0
+    RESET_GPIO_NUMBER = 4
+    BOOT0_GPIO_NUMBER = 22
 
-    def __init__(self, device=None, reset_gpio=4, boot0_gpio=22, debug=False):
+    def __init__(self, device=SERIAL_DEV, reset_gpio=RESET_GPIO_NUMBER, boot0_gpio=BOOT0_GPIO_NUMBER, debug=False):
         """Hat
-
         :param device: Optional string containing path to Build HAT serial device
         :param debug: Optional boolean to log debug information
         """
+
         self.led_status = -1
-        if device is None:
-            Device._setup(debug=debug)
-        else:
-             Device._setup(debug=debug, reset_gpio=reset_gpio, boot0_gpio=boot0_gpio)
+        device_ = Device._setup(device, reset_gpio, boot0_gpio, debug)
 
     def get(self):
         """Get devices which are connected or disconnected

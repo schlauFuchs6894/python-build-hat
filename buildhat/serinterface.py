@@ -71,11 +71,12 @@ class BuildHAT:
     BOOTLOADER = "BuildHAT bootloader version"
     DONE = "Done initialising ports"
     PROMPT = "BHBL>"
+    SERIAL_DEV = "/dev/serial0" # -> /dev/ttyAMA0
     RESET_GPIO_NUMBER = 4
     BOOT0_GPIO_NUMBER = 22
 
-    def __init__(self, firmware, signature, version, device="/dev/serial0", reset_gpio=4, 
-        boot0_gpio=22, debug=False):
+    def __init__(self, firmware, signature, version, device=SERIAL_DEV, reset_gpio=RESET_GPIO_NUMBER, 
+        boot0_gpio=BOOT0_GPIO_NUMBER, debug=False):
         """Interact with Build HAT
 
         :param firmware: Firmware file
