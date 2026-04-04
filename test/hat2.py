@@ -3,6 +3,7 @@
 import unittest
 
 from buildhat import Hat
+from gpiozero import OutputDevice
 import logging
 
 class TestHat(unittest.TestCase):
@@ -40,7 +41,7 @@ class TestHat(unittest.TestCase):
         logging.info("HAT 2:")
         logging.info(h2.get())
         self.assertIsInstance(h2.get(), dict)
-        
+
         # Read HAT 1
         rstH2 = OutputDevice(25, active_high=True, initial_value=True)
         print("Reset high")
