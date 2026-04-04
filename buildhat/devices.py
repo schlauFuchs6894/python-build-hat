@@ -91,7 +91,8 @@ class Device:
         vfile = open(ver)
         v = int(vfile.read())
         vfile.close()
-        build_hat = BuildHAT(firm, sig, v, device, reset_gpio, boot0_gpio, debug)
+        build_hat = BuildHAT(firmware=firm, signature=sig, version=v, device=device,
+            reset_gpio=reset_gpio, boot0_gpio=boot0_gpio, debug=debug,)
         if(Device._instance == None):
             Device._instance = build_hat
 
