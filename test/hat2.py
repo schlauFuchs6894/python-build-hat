@@ -9,14 +9,17 @@ import logging
 class TestHat(unittest.TestCase):
     """Test hat functions"""
 
-
+    H1_RST_GPIO = 5
+    H1_BOOT_GPIO = 22
+    H2_RST_GPIO = 5
+    H2_BOOT_GPIO = 6
 
     def test_vin(self):
         """Test voltage measure function"""
         h = Hat(
             device="/dev/ttyAMA4",
-            reset_gpio=25,
-            boot0_gpio=24,
+            reset_gpio=TestHat::H2_RST_GPIO,
+            boot0_gpio=TestHat::H2_BOOT_GPIO,
             debug=False,
         )
         vin = h.get_vin()
@@ -32,8 +35,8 @@ class TestHat(unittest.TestCase):
  
         h2 = Hat(
             device="/dev/ttyAMA4",
-            reset_gpio=25,
-            boot0_gpio=24,
+           reset_gpio=TestHat::H2_RST_GPIO,
+            boot0_gpio=TestHat::H2_BOOT_GPIO,
             debug=False,
         )
         logging.basicConfig(level=logging.INFO)
@@ -49,9 +52,9 @@ class TestHat(unittest.TestCase):
 
         h1 = Hat(
             device="/dev/ttyAMA0",
-            reset_gpio=4,
-            boot0_gpio=22,
-            debug=False,
+            reset_gpio=TestHat::H1_RST_GPIO,
+            boot0_gpio=TestHat::H1_BOOT_GPIO,
+           debug=False,
         )    
         logging.info("HAT 1:")
         logging.info(h1.get())

@@ -11,8 +11,8 @@ def run_hat2(cmd_q: Queue, evt_q: Queue) -> None:
     try:
         Hat(
             device="/dev/ttyAMA4",
-            reset_gpio=25,
-            boot0_gpio=24,
+            reset_gpio=5,
+            boot0_gpio=6,
             debug=True,
         )
         print(f"[HAT2] init SensorS and Actors")
