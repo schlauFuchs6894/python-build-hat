@@ -1,6 +1,7 @@
 """Test hat functionality"""
 
 import unittest
+import time
 
 from buildhat import Hat
 from gpiozero import OutputDevice
@@ -16,13 +17,13 @@ class TestHat(unittest.TestCase):
 
     def test_vin(self):
         """Test voltage measure function"""
-        h = Hat(
+        h2 = Hat(
             device="/dev/ttyAMA4",
             reset_gpio=TestHat.H2_RST_GPIO,
             boot0_gpio=TestHat.H2_BOOT_GPIO,
             debug=False,
         )
-        vin = h.get_vin()
+        vin = h2.get_vin()
         self.assertGreaterEqual(vin, 7.2)
         self.assertLessEqual(vin, 8.5)
  
@@ -30,9 +31,10 @@ class TestHat(unittest.TestCase):
         # Read HAT 2
         """Test getting list of devices"""
         rstH1 = OutputDevice(TestHat.H1_RST_GPIO, active_high=True, initial_value=True)
-        print("Reset high")
+        print("H1 Reset high")
         rstH1.off()
- 
+        time.sleep(0.01)
+
         h2 = Hat(
             device="/dev/ttyAMA4",
            reset_gpio=TestHat.H2_RST_GPIO,
@@ -40,15 +42,17 @@ class TestHat(unittest.TestCase):
             debug=False,
         )
         logging.basicConfig(level=logging.INFO)
-        print("h.get()")
+        print("h2.get()")
         logging.info("HAT 2:")
         logging.info(h2.get())
         self.assertIsInstance(h2.get(), dict)
 
         # Read HAT 1
+        rstH1.on()
         rstH2 = OutputDevice(TestHat.H2_RST_GPIO, active_high=True, initial_value=True)
-        print("Reset high")
         rstH2.off()
+        print("H2 Reset high")
+        time.sleep(0.5)  # wait for HAT to boot after reset        rstH2 = OutputDevice(TestHat.H2_RST_GPIO, active_high=True, initial_value=True)
 
         h1 = Hat(
             device="/dev/ttyAMA0",
