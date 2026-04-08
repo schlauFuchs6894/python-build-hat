@@ -39,7 +39,7 @@ class TestHat(unittest.TestCase):
             device="/dev/ttyAMA4",
            reset_gpio=TestHat.H2_RST_GPIO,
             boot0_gpio=TestHat.H2_BOOT_GPIO,
-            debug=False,
+            debug=False
         )
         logging.basicConfig(level=logging.INFO)
         print("h2.get()")
@@ -53,21 +53,27 @@ class TestHat(unittest.TestCase):
         rstH2.off()
         print("H2 Reset high")
         time.sleep(0.5)  # wait for HAT to boot after reset
+        del rstH1
         h1 = Hat(
             device="/dev/ttyAMA0",
             reset_gpio=TestHat.H1_RST_GPIO,
             boot0_gpio=TestHat.H1_BOOT_GPIO,
-           debug=False,
+           debug=False
         )    
         logging.info("HAT 1:")
         logging.info(h1.get())
         rstH2.on()
         time.sleep(0.5)  # wait for HAT to boot after reset
+        del rstH2
         self.assertIsInstance(h1.get(), dict)
 
     def test_serial(self):
         """Test setting serial device"""
-        Hat(device="/dev/ttyAMA4", reset_gpio=TestHat.H2_RST_GPIO)
+        Hat( device="/dev/ttyAMA4",
+            reset_gpio=TestHat.H2_RST_GPIO,
+            boot0_gpio=TestHat.H2_BOOT_GPIO,
+            debug=False
+        )
 
 
 if __name__ == '__main__':
