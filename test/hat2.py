@@ -63,7 +63,7 @@ class TestHat(unittest.TestCase):
         logging.info("HAT 1:")
         logging.info(h1.get())
         rstH2.on()
-        time.sleep(0.5)  # wait for HAT to boot after reset
+        time.sleep(2)  # wait for HAT to boot after reset
         del rstH2
         self.assertIsInstance(h1.get(), dict)
 
