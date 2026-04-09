@@ -249,6 +249,36 @@ class TestMotor(unittest.TestCase):
             diff = abs((end - start) - expected_dur)
             self.assertLess(diff, expected_dur * 0.1)
 
+    def test_dual_hat_dual_interval(self):
+        """Test 2 HAT dual motor interval"""
+        hat1 = Hat()
+        hat2 = Hat(
+            device="/dev/ttyAMA4",
+            reset_gpio=25,
+            boot0_gpio=24,
+            debug=False,
+        )       
+
+        # HAT 1 motors
+        h1m1 = Motor('A', hat_instance=hat1._instance)
+        h1m2 = Motor('B', hat_instance=hat1._instance)
+
+        # HAT 2 motors
+        h2m1 = Motor('A', hat_instance=hat2._instance)
+        h2m2 = Motor('B', hat_instance=hat2._instance)
+
+        for interval in [20, 10]:
+            h1m1.interval = interval
+            h2m2.interval = interval
+            count = 1000
+            expected_dur = count * h1m1.interval * 1e-3
+            start = time.time()
+            for _ in range(count):
+                h1m1.get_position()
+                h2m2.get_position()
+            end = time.time()
+            diff = abs((end - start) - expected_dur)
+            self.assertLess(diff, expected_dur * 0.1)
 
 if __name__ == '__main__':
     unittest.main()

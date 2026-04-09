@@ -57,21 +57,26 @@ class Device:
     # Internal: canonical device path
     # ------------------------------------------------------------------
 
-    @staticmethod
-    def _resolve_device(device):
+    # The hardware default when the caller passes device=None.
+    _DEFAULT_SERIAL = "/dev/serial0"
+
+    @classmethod
+    def _resolve_device(cls, device):
         """Return a stable, canonical key for *device*.
 
-        ``None``  → ``None``  (means "use whatever the default is")
-        A path    → ``os.path.realpath(path)`` so symlinks like
-                    ``/dev/serial0`` and ``/dev/ttyAMA0`` collapse to the
-                    same key when they point to the same inode.
+        ``None`` is treated as the hardware default (``/dev/serial0``), so
+        ``Hat()`` and ``Hat("/dev/serial0")`` and ``Hat("/dev/ttyAMA0")``
+        (when serial0 → ttyAMA0) all map to the **same** registry key and
+        therefore reuse the same BuildHAT connection.
+
+        A concrete path is resolved via ``os.path.realpath()`` so symlinks
+        collapse to a single key.
         """
-        if device is None:
-            return None
+        path = device if device is not None else cls._DEFAULT_SERIAL
         try:
-            return os.path.realpath(device)
+            return os.path.realpath(path)
         except (TypeError, ValueError):
-            return device
+            return path
 
     # ------------------------------------------------------------------
     # Singleton / instance management
@@ -162,10 +167,22 @@ class Device:
         Resolution order
         ~~~~~~~~~~~~~~~~
         1. *hat_instance* supplied → return it directly (no registry lookup).
-        2. *device* path resolves to an already-registered HAT → return it.
-        3. No *device* given and a default exists → return the default.
-        4. Otherwise → create a fresh BuildHAT, register it, promote it to
-           default if none exists yet.
+        2. Resolved device path already in registry → return existing BuildHAT.
+        3. Otherwise → create a fresh BuildHAT, register it under the canonical
+           path, and apply the promotion rule:
+
+           * No default exists yet → new HAT becomes the default.
+           * An **explicit** device path was given (``device is not None``) →
+             new HAT *always* becomes the default (last-explicit-init wins).
+             This means ``Hat(device="/dev/ttyAMA4")`` in ``setUpClass`` is
+             enough to make all subsequent bare ``Motor('A')`` calls route to
+             HAT2 without any extra ``set_default_instance()`` call.
+           * ``device=None`` (resolved to ``/dev/serial0``) → only promotes
+             when there is no default yet, so it never clobbers an explicit one.
+
+           ``None`` is resolved to ``/dev/serial0`` before any lookup, so
+           ``Hat()``, ``Hat("/dev/serial0")``, and ``Hat("/dev/ttyAMA0")``
+           (when serial0 → ttyAMA0) all share one registry entry.
 
         :param hat_instance: Pre-constructed BuildHAT to use as-is.
         :returns: Resolved BuildHAT instance.
@@ -178,23 +195,29 @@ class Device:
         canonical = cls._resolve_device(device)
 
         # 2. We know this device path — reuse the existing connection.
-        if canonical is not None and canonical in cls._registry:
+        if canonical in cls._registry:
             return cls._registry[canonical]
 
-        # 3. No device requested and a default already exists.
-        if canonical is None and cls._default_instance() is not None:
-            return cls._default_instance()
+        # 3. Create a new BuildHAT.
+        # Always pass the resolved path so serial.Serial() never receives None.
+        real_device = canonical  # realpath string, never None
+        bhat = cls._create_buildhat(real_device, reset_gpio, boot0_gpio, debug)
 
-        # 4. Create a new BuildHAT for this device path.
-        bhat = cls._create_buildhat(device, reset_gpio, boot0_gpio, debug)
+        cls._registry[canonical] = bhat
 
-        # Store under the canonical path (or id() for None-device edge case).
-        reg_key = canonical if canonical is not None else id(bhat)
-        cls._registry[reg_key] = bhat
-
-        # First HAT ever → becomes the default.
-        if cls._default_key is None:
-            cls._default_key = reg_key
+        # Promotion rules:
+        #   • No default yet → this HAT becomes the default (first-init wins).
+        #   • An explicit device path was given → this HAT always becomes the
+        #     default (last-explicit-init wins).  This lets setUpClass / script
+        #     code do Hat(device="...") once and have all subsequent bare
+        #     Motor('A') / ColorSensor('B') calls land on the right HAT without
+        #     any extra set_default_instance() call.
+        #   • device was None (resolved to the fallback path) → only promote
+        #     when there is no default yet, to avoid clobbering an explicit one.
+        explicit = device is not None   # True when caller passed a real path
+        if cls._default_key is None or explicit:
+            cls._default_key = canonical
+        if cls._default_key == canonical:
             weakref.finalize(bhat, bhat.shutdown)
 
         return bhat
