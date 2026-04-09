@@ -6,125 +6,184 @@ from .devices import Device
 
 
 class Hat:
-    """Allows enumeration of devices which are connected to the hat"""
-    SERIAL_DEV =None # "/dev/serial0" # -> /dev/ttyAMA0
+    """Enumerate and control a Build HAT.
+
+    Can be used in two ways:
+
+    **Singleton / backward-compatible**::
+
+        hat = Hat()               # reuses or creates the default instance
+        hat = Hat("/dev/serial0") # creates a new HAT, becomes the default
+                                  # if none existed yet
+
+    **Explicit instance** (multiple HATs)::
+
+        hat_a = Hat("/dev/ttyAMA0")
+        hat_b = Hat("/dev/ttyAMA1")
+
+        # Make hat_b the new default for Device() calls that omit hat_instance=
+        old_default = Device.set_default_instance(hat_b._instance)
+    """
+
+    SERIAL_DEV        = None
     RESET_GPIO_NUMBER = 4
     BOOT0_GPIO_NUMBER = 22
 
-    def __init__(self, device=SERIAL_DEV, reset_gpio=RESET_GPIO_NUMBER, boot0_gpio=BOOT0_GPIO_NUMBER, debug=False):
-        """Hat
-        :param device: Optional string containing path to Build HAT serial device
-        :param debug: Optional boolean to log debug information
-        """
+    def __init__(self, device=SERIAL_DEV,
+                 reset_gpio=RESET_GPIO_NUMBER,
+                 boot0_gpio=BOOT0_GPIO_NUMBER,
+                 debug=False):
+        """Initialise the HAT.
 
+        :param device: Path to the serial device, or ``None`` to reuse the
+            current default BuildHAT instance.
+        :param reset_gpio: Reset GPIO number.
+        :param boot0_gpio: Boot0 GPIO number.
+        :param debug: Enable debug logging.
+        """
         self.led_status = -1
-        self.device_ = Device._setup(device=device, reset_gpio=reset_gpio, boot0_gpio=boot0_gpio, debug=debug)
+        self._instance  = Device._setup(
+            device=device,
+            reset_gpio=reset_gpio,
+            boot0_gpio=boot0_gpio,
+            debug=debug,
+        )
+
+    # ------------------------------------------------------------------
+    # Singleton helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def set_default(hat):
+        """Make *hat* the default instance used by all ``Device`` subclasses.
+
+        :param hat: A :class:`Hat` instance to promote, or ``None`` to clear
+            the default.
+        :returns: The *previous* default :class:`Hat`-like instance, wrapped
+            in a thin object that exposes the same ``set_default`` interface,
+            or ``None`` if there was no previous default.
+        :rtype: Hat | None
+
+        Example::
+
+            hat_a = Hat("/dev/ttyAMA0")
+            hat_b = Hat("/dev/ttyAMA1")
+
+            previous = Hat.set_default(hat_b)
+            # previous._instance is hat_a._instance
+        """
+        new_bhat = hat._instance if hat is not None else None
+        prev_bhat = Device.set_default_instance(new_bhat)
+        if prev_bhat is None:
+            return None
+        # Wrap the raw BuildHAT in a lightweight Hat-like shell so the caller
+        # can pass it straight back to set_default() if needed.
+        wrapper      = Hat.__new__(Hat)
+        wrapper.led_status = -1
+        wrapper._instance  = prev_bhat
+        return wrapper
+
+    # ------------------------------------------------------------------
+    # Device enumeration
+    # ------------------------------------------------------------------
 
     def get(self):
-        """Get devices which are connected or disconnected
+        """Return a dict describing all four ports.
 
-        :return: Dictionary of devices
+        :returns: ``{'A': {'typeid': …, 'connected': …, 'name': …,
+            'description': …}, …}``
         :rtype: dict
         """
         devices = {}
         for i in range(4):
-            name = Device.UNKNOWN_DEVICE
-            if self.device_.connections[i].typeid in Device._device_names:
-                name = Device._device_names[self.device_.connections[i].typeid][0]
-                desc = Device._device_names[self.device_.connections[i].typeid][1]
-            elif self.device_.connections[i].typeid == -1:
+            conn = self._instance.connections[i]
+            if conn.typeid in Device._device_names:
+                name = Device._device_names[conn.typeid][0]
+                desc = Device._device_names[conn.typeid][1]
+            elif conn.typeid == -1:
                 name = Device.DISCONNECTED_DEVICE
                 desc = ''
-            devices[chr(ord('A') + i)] = {"typeid": self.device_.connections[i].typeid,
-                                          "connected": self.device_.connections[i].connected,
-                                          "name": name,
-                                          "description": desc}
+            else:
+                name = Device.UNKNOWN_DEVICE
+                desc = ''
+            devices[chr(ord('A') + i)] = {
+                "typeid":      conn.typeid,
+                "connected":   conn.connected,
+                "name":        name,
+                "description": desc,
+            }
         return devices
 
-    def get_logfile(self):
-        """Get the filename of the debug log (If enabled, None otherwise)
+    # ------------------------------------------------------------------
+    # Diagnostics
+    # ------------------------------------------------------------------
 
-        :return: Path of the debug logfile
-        :rtype: str or None
+    def get_logfile(self):
+        """Path of the debug log file, or ``None`` if debug is disabled.
+
+        :rtype: str | None
         """
-        return Device._instance.debug_filename
+        return self._instance.debug_filename
 
     def get_vin(self):
-        """Get the voltage present on the input power jack
+        """Input voltage on the power jack.
 
-        :return: Voltage on the input power jack
+        :returns: Voltage in volts.
         :rtype: float
         """
         ftr = Future()
-        self.device_.vinftr.append(ftr)
-        self.device_.write(b"vin\r")
+        self._instance.vinftr.append(ftr)
+        self._instance.write(b"vin\r")
         return ftr.result()
 
+    # ------------------------------------------------------------------
+    # LED control
+    # ------------------------------------------------------------------
+
     def _set_led(self, intmode):
-        if isinstance(intmode, int) and intmode >= -1 and intmode <= 3:
+        if isinstance(intmode, int) and -1 <= intmode <= 3:
             self.led_status = intmode
-            self.device_.write(f"ledmode {intmode}\r".encode())
+            self._instance.write(f"ledmode {intmode}\r".encode())
 
     def set_leds(self, color="voltage"):
-        """Set the two LEDs on or off on the BuildHAT.
+        """Set the two status LEDs.
 
-        By default the color depends on the input voltage with green being nominal at around 8V
-        (The fastest time the LEDs can be perceptually toggled is around 0.025 seconds)
-
-        :param color: orange, green, both, off, or voltage (default)
+        :param color: ``"orange"``, ``"green"``, ``"both"``, ``"off"``, or
+            ``"voltage"`` (default — colour tracks input voltage).
         """
-        if color == "orange":
-            self._set_led(1)
-        elif color == "green":
-            self._set_led(2)
-        elif color == "both":
-            self._set_led(3)
-        elif color == "off":
-            self._set_led(0)
-        elif color == "voltage":
-            self._set_led(-1)
-        else:
-            return
+        mapping = {"orange": 1, "green": 2, "both": 3, "off": 0, "voltage": -1}
+        if color in mapping:
+            self._set_led(mapping[color])
 
     def orange_led(self, status=True):
-        """Turn the BuildHAT's orange LED on or off
+        """Turn the orange LED on or off.
 
-        :param status: True to turn it on, False to turn it off
+        :param status: ``True`` to enable, ``False`` to disable.
         """
         if status:
-            if self.led_status == 3 or self.led_status == 1:
-                # already on
+            if self.led_status in (3, 1):
                 return
-            elif self.led_status == 2:
-                self._set_led(3)
-            # off or default
-            else:
-                self._set_led(1)
+            self._set_led(3 if self.led_status == 2 else 1)
         else:
-            if self.led_status == 1 or self.led_status == -1:
+            if self.led_status in (1, -1):
                 self._set_led(0)
             elif self.led_status == 3:
                 self._set_led(2)
 
     def green_led(self, status=True):
-        """Turn the BuildHAT's green LED on or off
+        """Turn the green LED on or off.
 
-        :param status: True to turn it on, False to turn it off
+        :param status: ``True`` to enable, ``False`` to disable.
         """
         if status:
-            if self.led_status == 3 or self.led_status == 2:
-                # already on
+            if self.led_status in (3, 2):
                 return
-            elif self.led_status == 1:
-                self._set_led(3)
-            # off or default
-            else:
-                self._set_led(2)
+            self._set_led(3 if self.led_status == 1 else 2)
         else:
-            if self.led_status == 2 or self.led_status == -1:
+            if self.led_status in (2, -1):
                 self._set_led(0)
             elif self.led_status == 3:
                 self._set_led(1)
 
     def _close(self):
-        Device._instance.shutdown()
+        self._instance.shutdown()
