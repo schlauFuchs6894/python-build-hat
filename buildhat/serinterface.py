@@ -270,10 +270,10 @@ class BuildHAT:
         if not self.fin and log:
             if replace != "":
                 logging.debug(f"> {replace}")
-                print(f"> {replace}", flush=True)
+                #print(f"> {replace}", flush=True)
             else:
                 logging.debug(f"> {data.decode('utf-8', 'ignore').strip()}")
-                print(f"> {data.decode('utf-8', 'ignore').strip()}")
+                #print(f"> {data.decode('utf-8', 'ignore').strip()}")
 
     def read(self):
         """Read data from the serial port of Build HAT
@@ -287,9 +287,9 @@ class BuildHAT:
             pass
         if line != "":
             logging.debug(f"< {line}")
-            print(f"< {line!r}", flush=True)
-        else:
-            print("<")    
+            #print(f"< {line!r}", flush=True)
+        #else:
+        #    #print("<")    
         return line
 
     def shutdown(self):
