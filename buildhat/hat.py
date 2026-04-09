@@ -46,7 +46,7 @@ class Hat:
             device=device,
             reset_gpio=reset_gpio,
             boot0_gpio=boot0_gpio,
-            debug=debug
+            debug=debug,
         )
 
     # ------------------------------------------------------------------

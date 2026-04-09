@@ -10,19 +10,23 @@ from .serinterface import BuildHAT
 
 
 class Device:
-    """Creates instances of BuildHAT; falls back to a module-level singleton
-    when no explicit instance is provided.
+    """Manages BuildHAT instances with both singleton and multi-instance support.
 
-    Singleton behaviour is unchanged from the original API — the first
-    initialised HAT becomes the default.  Call ``Device.set_default_instance``
-    to swap the default and get the previous one back.
+    * The **first** HAT ever initialised becomes the default (singleton).
+    * Pass ``hat_instance=`` to bind a device to a specific HAT explicitly.
+    * Use :meth:`set_default_instance` / :meth:`get_default_instance` to
+      inspect or swap the default at runtime.
     """
 
-    SERIAL_DEV = None
+    SERIAL_DEV        = None
     RESET_GPIO_NUMBER = 4
     BOOT0_GPIO_NUMBER = 22
 
-    _default_instance = None   # the singleton / current default
+    # Registry: resolved_device_path -> BuildHAT
+    # None-key holds the "no-device / default" slot used by the singleton path.
+    _registry: dict = {}
+    _default_key     = None   # key inside _registry that is the current default
+
     _used = {0: False, 1: False, 2: False, 3: False}
 
     _device_names = {
@@ -50,38 +54,75 @@ class Device:
     DISCONNECTED_DEVICE = "Disconnected"
 
     # ------------------------------------------------------------------
+    # Internal: canonical device path
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _resolve_device(device):
+        """Return a stable, canonical key for *device*.
+
+        ``None``  → ``None``  (means "use whatever the default is")
+        A path    → ``os.path.realpath(path)`` so symlinks like
+                    ``/dev/serial0`` and ``/dev/ttyAMA0`` collapse to the
+                    same key when they point to the same inode.
+        """
+        if device is None:
+            return None
+        try:
+            return os.path.realpath(device)
+        except (TypeError, ValueError):
+            return device
+
+    # ------------------------------------------------------------------
     # Singleton / instance management
     # ------------------------------------------------------------------
+
+    @classmethod
+    def _default_instance(cls):
+        """Return the current default BuildHAT (may be ``None``)."""
+        if cls._default_key is None and not cls._registry:
+            return None
+        return cls._registry.get(cls._default_key)
 
     @classmethod
     def set_default_instance(cls, instance):
         """Replace the default (singleton) BuildHAT instance.
 
-        :param instance: A :class:`~buildhat.serinterface.BuildHAT` instance
-            (or ``None`` to clear the default).
+        :param instance: A :class:`~buildhat.serinterface.BuildHAT` instance,
+            or ``None`` to clear the default.
         :returns: The *previous* default instance (may be ``None``).
         :rtype: BuildHAT | None
 
         Example::
 
-            hat_a = BuildHAT(...)
-            hat_b = BuildHAT(...)
-            old = Device.set_default_instance(hat_b)
-            # old is hat_a; all subsequent Device() calls without an explicit
-            # hat_instance= use hat_b.
+            old = Device.set_default_instance(hat_b._instance)
+            # old is the previous default; pass it back to restore.
         """
-        prev = cls._default_instance
-        cls._default_instance = instance
+        prev = cls._default_instance()
+
+        if instance is None:
+            cls._default_key = None
+            return prev
+
+        # Find the registry key for this instance (O(n), n ≤ HAT count).
+        for key, bhat in cls._registry.items():
+            if bhat is instance:
+                cls._default_key = key
+                return prev
+
+        # Not yet in the registry — add it under a synthetic key.
+        key = id(instance)
+        cls._registry[key] = instance
+        cls._default_key = key
         return prev
 
     @classmethod
     def get_default_instance(cls):
-        """Return the current default BuildHAT instance (the singleton).
+        """Return the current default BuildHAT instance.
 
-        :returns: Current default instance, or ``None`` if none has been set.
         :rtype: BuildHAT | None
         """
-        return cls._default_instance
+        return cls._default_instance()
 
     # ------------------------------------------------------------------
     # Internal setup helper
@@ -89,7 +130,7 @@ class Device:
 
     @staticmethod
     def _create_buildhat(device, reset_gpio, boot0_gpio, debug):
-        """Unconditionally create and return a new BuildHAT instance."""
+        """Unconditionally construct a new BuildHAT."""
         if (
             os.path.isdir(os.path.join(os.getcwd(), "data/"))
             and os.path.isfile(os.path.join(os.getcwd(), "data", "firmware.bin"))
@@ -116,35 +157,45 @@ class Device:
     def _setup(cls, device=SERIAL_DEV, reset_gpio=RESET_GPIO_NUMBER,
                boot0_gpio=BOOT0_GPIO_NUMBER, debug=False,
                hat_instance=None):
-        """Return a BuildHAT instance, creating one only when necessary.
+        """Resolve (or create) a BuildHAT instance.
 
         Resolution order
         ~~~~~~~~~~~~~~~~
-        1. ``hat_instance`` was supplied explicitly → use it as-is.
-        2. A default instance already exists and ``device`` is ``None``
-           → reuse the default (classic singleton behaviour).
-        3. Otherwise → create a fresh BuildHAT, register it as the default
-           if none exists yet, attach a finaliser, and return it.
+        1. *hat_instance* supplied → return it directly (no registry lookup).
+        2. *device* path resolves to an already-registered HAT → return it.
+        3. No *device* given and a default exists → return the default.
+        4. Otherwise → create a fresh BuildHAT, register it, promote it to
+           default if none exists yet.
 
-        :param hat_instance: An already-constructed BuildHAT to bind to.
-        :returns: The resolved BuildHAT instance.
+        :param hat_instance: Pre-constructed BuildHAT to use as-is.
+        :returns: Resolved BuildHAT instance.
         :rtype: BuildHAT
         """
-        # 1. Caller provided an explicit instance — honour it directly.
+        # 1. Explicit instance — bypass registry entirely.
         if hat_instance is not None:
             return hat_instance
 
-        # 2. Reuse the existing default when no serial device was requested.
-        if cls._default_instance is not None and device is None:
-            return cls._default_instance
+        canonical = cls._resolve_device(device)
 
-        # 3. Create a new BuildHAT.
+        # 2. We know this device path — reuse the existing connection.
+        if canonical is not None and canonical in cls._registry:
+            return cls._registry[canonical]
+
+        # 3. No device requested and a default already exists.
+        if canonical is None and cls._default_instance() is not None:
+            return cls._default_instance()
+
+        # 4. Create a new BuildHAT for this device path.
         bhat = cls._create_buildhat(device, reset_gpio, boot0_gpio, debug)
 
-        # Register as default if none exists yet (first-initialised wins).
-        if cls._default_instance is None:
-            cls._default_instance = bhat
-            weakref.finalize(cls._default_instance, cls._default_instance.shutdown)
+        # Store under the canonical path (or id() for None-device edge case).
+        reg_key = canonical if canonical is not None else id(bhat)
+        cls._registry[reg_key] = bhat
+
+        # First HAT ever → becomes the default.
+        if cls._default_key is None:
+            cls._default_key = reg_key
+            weakref.finalize(bhat, bhat.shutdown)
 
         return bhat
 
@@ -161,16 +212,13 @@ class Device:
         """Initialise a device on a specific port.
 
         :param port: Port letter ('A'–'D').
-        :param device: Path to the serial device, or ``None`` to reuse the
-            default instance.
+        :param device: Serial device path, or ``None`` to use the default HAT.
         :param reset_gpio: Reset GPIO number.
         :param boot0_gpio: Boot0 GPIO number.
         :param debug: Enable debug logging.
-        :param hat_instance: Bind this device to a *specific*
-            :class:`~buildhat.serinterface.BuildHAT` instance instead of the
-            default singleton.  Useful when more than one HAT is present.
-        :raises DeviceError: Port string is invalid, already in use, or the
-            connected device does not match the expected type.
+        :param hat_instance: Bind to a specific BuildHAT rather than the
+            default singleton.
+        :raises DeviceError: Invalid/already-used port, or wrong device type.
         """
         if not isinstance(port, str) or len(port) != 1:
             raise DeviceError("Invalid port")
@@ -181,8 +229,6 @@ class Device:
             raise DeviceError("Port already used")
 
         self.port = p
-
-        # Resolve (or create) the BuildHAT instance for this device.
         self._hat_instance = Device._setup(
             device=device,
             reset_gpio=reset_gpio,
@@ -207,11 +253,9 @@ class Device:
                 f'There is not a {type(self).__name__} connected to port '
                 f'{port} (Found {self.name})'
             )
-
         Device._used[p] = True
 
     def __del__(self):
-        """Release the port when the device object is garbage-collected."""
         if hasattr(self, "port") and Device._used[self.port]:
             Device._used[self.port] = False
             self._conn.callit = None
@@ -224,20 +268,18 @@ class Device:
 
     @staticmethod
     def name_for_id(typeid):
-        """Translate a numeric type-id to a Python class name.
+        """Python class name for a numeric device type-id.
 
         :param typeid: Integer device type.
-        :return: Class name string.
         :rtype: str
         """
         return Device._device_names.get(typeid, (Device.UNKNOWN_DEVICE,))[0]
 
     @staticmethod
     def desc_for_id(typeid):
-        """Translate a numeric type-id to a human-readable description.
+        """Human-readable description for a numeric device type-id.
 
         :param typeid: Integer device type.
-        :return: Description string.
         :rtype: str
         """
         if typeid in Device._device_names:
@@ -254,49 +296,33 @@ class Device:
 
     @property
     def connected(self):
-        """Whether the device is currently connected.
-
-        :rtype: bool
-        """
+        """:rtype: bool"""
         return self._conn.connected
 
     @property
     def typeid(self):
-        """Type ID recorded at initialisation time.
-
-        :rtype: int
-        """
+        """:rtype: int"""
         return self._typeid
 
     @property
     def typeidcur(self):
-        """Type ID currently reported by the HAT.
-
-        :rtype: int
-        """
+        """:rtype: int"""
         return self._conn.typeid
 
     @property
     def _hat(self):
-        """The BuildHAT instance this device is bound to."""
         return self._hat_instance
 
     @property
     def name(self):
-        """Python class name of the device on the port.
-
-        :rtype: str
-        """
+        """:rtype: str"""
         if not self.connected:
             return Device.DISCONNECTED_DEVICE
         return self._device_names.get(self.typeidcur, (Device.UNKNOWN_DEVICE,))[0]
 
     @property
     def description(self):
-        """Human-readable description of the device on the port.
-
-        :rtype: str
-        """
+        """:rtype: str"""
         if not self.connected:
             return Device.DISCONNECTED_DEVICE
         if self.typeidcur in self._device_names:
@@ -304,13 +330,13 @@ class Device:
         return Device.UNKNOWN_DEVICE
 
     # ------------------------------------------------------------------
-    # Device operations
+    # Device operations (unchanged from original)
     # ------------------------------------------------------------------
 
     def isconnected(self):
-        """Assert that the device is still connected and of the expected type.
+        """Assert device is still present and of the expected type.
 
-        :raises DeviceError: Device is gone or has been swapped for another.
+        :raises DeviceError: Device gone or swapped.
         """
         if not self.connected:
             raise DeviceError("No device found")
@@ -322,10 +348,9 @@ class Device:
         self._write(f"port {self.port} ; port_plimit 1 ; set -1\r")
 
     def get(self):
-        """Read the current sensor value.
+        """Read current sensor value.
 
-        :return: Data list from the device.
-        :raises DeviceError: Device is not in a valid mode.
+        :raises DeviceError: Not in a valid mode.
         """
         self.isconnected()
         if self._simplemode == -1 and self._combimode == -1:
@@ -335,11 +360,7 @@ class Device:
         return ftr.result()
 
     def mode(self, modev):
-        """Set combimode or simple mode.
-
-        :param modev: List of ``(mode, dataset)`` tuples for a combimode,
-            or a single integer for simple mode.
-        """
+        """Set combimode (list of tuples) or simple mode (int)."""
         self.isconnected()
         if isinstance(modev, list):
             modestr = "".join(f"{t[0]} {t[1]} " for t in modev)
@@ -351,9 +372,9 @@ class Device:
                 f"port {self.port} ; combi {self._combimode} {modestr} ; "
                 f"select {self._combimode} ; selrate {self._interval}\r"
             )
-            self._simplemode = -1
-            self._modestr    = modestr
-            self._conn.combimode = 0
+            self._simplemode      = -1
+            self._modestr         = modestr
+            self._conn.combimode  = 0
             self._conn.simplemode = -1
         else:
             if self._combimode == -1 and self._simplemode == int(modev):
@@ -361,17 +382,14 @@ class Device:
             if self._combimode != -1:
                 self._write(f"port {self.port} ; combi {self._combimode}\r")
             self._write(f"port {self.port}; select\r")
-            self._combimode  = -1
-            self._simplemode = int(modev)
+            self._combimode       = -1
+            self._simplemode      = int(modev)
             self._write(f"port {self.port} ; select {int(modev)} ; selrate {self._interval}\r")
             self._conn.combimode  = -1
             self._conn.simplemode = int(modev)
 
     def select(self):
-        """Request data from the current mode.
-
-        :raises DeviceError: Device is not in a valid mode.
-        """
+        """Request data from the current mode."""
         self.isconnected()
         if self._simplemode != -1:
             idx = self._simplemode
@@ -390,7 +408,7 @@ class Device:
         self._write(f"port {self.port} ; off\r")
 
     def deselect(self):
-        """Cancel data selection from the current mode."""
+        """Cancel data selection."""
         self._write(f"port {self.port} ; select\r")
 
     def _write(self, cmd):
@@ -402,10 +420,7 @@ class Device:
         self._write(f"port {self.port} ; write1 {hexstr}\r")
 
     def callback(self, func):
-        """Set (or clear) the data-ready callback.
-
-        :param func: Callable invoked with new data, or ``None`` to remove.
-        """
+        """Set or clear the data-ready callback."""
         if func is not None:
             self.select()
         else:
@@ -414,12 +429,7 @@ class Device:
 
     @property
     def interval(self):
-        """Polling interval in milliseconds (0–1 000 000 000).
-
-        :getter: Returns the current interval.
-        :setter: Updates the interval on the HAT.
-        :rtype: int
-        """
+        """:rtype: int"""
         return self._interval
 
     @interval.setter
