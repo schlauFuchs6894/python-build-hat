@@ -19,6 +19,12 @@ python - <<'EOF'
 import time
 from buildhat import Hat, Motor, ColorDistanceSensor
 from gpiozero import OutputDevice
+
+H1_RST_GPIO = 4
+H1_BOOT_GPIO = 22
+H2_RST_GPIO = 5
+H2_BOOT_GPIO = 6
+
 # Read HAT 1
 rstH2 = OutputDevice(5, active_high=True, initial_value=True)
 print("H2 GPIO5 Reset high")
@@ -27,8 +33,8 @@ rstH2.off()
 
 h1 = Hat(
     device="/dev/ttyAMA0",
-    reset_gpio=4,
-    boot0_gpio=22,
+    reset_gpio=H1_RST_GPIO,
+    boot0_gpio=H1_BOOT_GPIO,
     debug=False,
 )
 print("HAT1:")
@@ -51,8 +57,8 @@ del rstH2
 
 h2 = Hat(
     device="/dev/ttyAMA4",
-    reset_gpio=5,
-    boot0_gpio=6,
+    reset_gpio=H2_RST_GPIO,
+    boot0_gpio=H2_BOOT_GPIO,
     debug=False,
 )
 print("HAT2:")

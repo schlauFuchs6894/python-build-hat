@@ -6,6 +6,10 @@ import unittest
 from buildhat import Hat, Motor
 from buildhat.exc import DeviceError, MotorError
 
+H1_RST_GPIO = 4
+H1_BOOT_GPIO = 22
+H2_RST_GPIO = 5
+H2_BOOT_GPIO = 6
 
 class TestMotor(unittest.TestCase):
     """Test motors"""
@@ -13,12 +17,13 @@ class TestMotor(unittest.TestCase):
     THRESHOLD_DISTANCE = 15
     # init build hat
 
+
     @classmethod
     def setUpClass(cls):
         cls.hat = Hat(
             device="/dev/ttyAMA4",
-            reset_gpio=25,
-            boot0_gpio=24,
+            reset_gpio=H2_RST_GPIO,
+            boot0_gpio=H2_BOOT_GPIO,
             debug=False,
         )
 
@@ -251,11 +256,16 @@ class TestMotor(unittest.TestCase):
 
     def test_dual_hat_dual_interval(self):
         """Test 2 HAT dual motor interval"""
-        hat1 = Hat()
+        hat1 = Hat(
+            device="/dev/ttyAMA0",
+            reset_gpio=H1_RST_GPIO,
+            boot0_gpio=H1_BOOT_GPIO,
+            debug=False,            
+        )
         hat2 = Hat(
             device="/dev/ttyAMA4",
-            reset_gpio=25,
-            boot0_gpio=24,
+            reset_gpio=H2_RST_GPIO,
+            boot0_gpio=H2_BOOT_GPIO,
             debug=False,
         )       
 
