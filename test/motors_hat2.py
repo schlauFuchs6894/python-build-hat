@@ -261,10 +261,10 @@ class TestMotor(unittest.TestCase):
 
         # HAT 1 motors
         h1m1 = Motor('A', hat_instance=hat1._instance)
-        h1m2 = Motor('B', hat_instance=hat1._instance)
+        #h1m2 = Motor('B', hat_instance=hat1._instance)
 
         # HAT 2 motors
-        h2m1 = Motor('A', hat_instance=hat2._instance)
+        #h2m1 = Motor('A', hat_instance=hat2._instance)
         h2m2 = Motor('B', hat_instance=hat2._instance)
 
         for interval in [20, 10]:
