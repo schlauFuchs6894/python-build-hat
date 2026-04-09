@@ -58,8 +58,15 @@ class Device:
         if Device._used[p]:
             raise DeviceError("Port already used")
         self.port = p
-        self.build_hat = self._setup(device=device, reset_gpio=reset_gpio, boot0_gpio=boot0_gpio, debug=debug, build_hat=self.build_hat)
+        # check if atribute exist? 
+        if not hasattr(self, 'build_hat'):
+            self.build_hat = None
 
+        self.build_hat = self._setup(device=device, reset_gpio=reset_gpio, boot0_gpio=boot0_gpio, debug=debug, build_hat=self.build_hat)
+        #check if it now exists 
+        if self.build_hat is None:
+            raise DeviceError("Failed to setup Build HAT Device")
+        
         self._simplemode = -1
         self._combimode = -1
         self._modestr = ""
