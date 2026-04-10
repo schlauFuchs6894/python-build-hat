@@ -52,7 +52,7 @@ class TestHat(unittest.TestCase):
 
     def test_hat1_serial(self):
         """Registry returns the same instance for the same device path"""
-        h= Hat(device="/dev/ttyAM0",
+        h= Hat(device="/dev/ttyAMA0",
             reset_gpio=H1_RST_GPIO,
             boot0_gpio=H1_BOOT_GPIO,
             debug=False)
