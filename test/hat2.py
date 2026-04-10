@@ -31,7 +31,7 @@ class TestHat(unittest.TestCase):
     def test_get(self):
         # Read HAT 2
         """Test getting list of devices"""
-        rstH1 = OutputDevice(TestHat.H1_RST_GPIO, active_high=True, initial_value=True)
+        rstH1 = OutputDevice(H1_RST_GPIO, active_high=True, initial_value=True)
         print("H1 Reset high")
         rstH1.off()
         time.sleep(0.01)
