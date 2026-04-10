@@ -11,16 +11,16 @@ class ColorSensor(Device):
     """Color sensor
 
     :param port: Port of device
+    :param kwargs: Forwarded to :class:`Device` (e.g. ``hat_instance=``)
     :raises DeviceError: Occurs if there is no color sensor attached to port
     """
 
-    def __init__(self, port):
+    def __init__(self, port, **kwargs):
         """
-        Initialise color sensor
-
+        Initialise color distance sensor
         :param port: Port of device
         """
-        super().__init__(port)
+        super().__init__(port, **kwargs)
         self.reverse()
         self.mode(6)
         self.avg_reads = 4

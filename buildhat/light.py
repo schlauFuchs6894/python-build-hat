@@ -10,16 +10,17 @@ class Light(Device):
     Use on()/off() functions to turn lights on/off
 
     :param port: Port of device
+    :param kwargs: Forwarded to :class:`Device` (e.g. ``hat_instance=``)
     :raises DeviceError: Occurs if there is no light attached to port
     """
 
-    def __init__(self, port):
+    def __init__(self, port, **kwargs):
         """
         Initialise light
 
         :param port: Port of device
         """
-        super().__init__(port)
+        super().__init__(port, **kwargs)
 
     def brightness(self, brightness):
         """

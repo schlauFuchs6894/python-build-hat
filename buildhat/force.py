@@ -9,16 +9,17 @@ class ForceSensor(Device):
     """Force sensor
 
     :param port: Port of device
+    :param kwargs: Forwarded to :class:`Device` (e.g. ``hat_instance=``)
     :raises DeviceError: Occurs if there is no force sensor attached to port
     """
 
-    def __init__(self, port, threshold_force=1):
+    def __init__(self, port, threshold_force=1, **kwargs):
         """Initialise force sensor
 
         :param port: Port of device
         :param threshold_force: Optional
         """
-        super().__init__(port)
+        super().__init__(port, **kwargs)
         self.mode([(0, 0), (1, 0), (3, 0)])
         self._when_pressed = None
         self._when_released = None

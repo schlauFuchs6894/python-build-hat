@@ -7,16 +7,17 @@ class TiltSensor(Device):
     """Tilt sensor
 
     :param port: Port of device
+    :param kwargs: Forwarded to :class:`Device` (e.g. ``hat_instance=``)
     :raises DeviceError: Occurs if there is no tilt sensor attached to port
     """
 
-    def __init__(self, port):
+    def __init__(self, port, **kwargs):
         """
         Initialise tilt sensor
 
         :param port: Port of device
         """
-        super().__init__(port)
+        super().__init__(port, **kwargs)
         self.mode(0)
 
     def get_tilt(self):
@@ -38,13 +39,13 @@ class MotionSensor(Device):
 
     default_mode = 0
 
-    def __init__(self, port):
+    def __init__(self, port, **kwargs):
         """
         Initialise motion sensor
 
         :param port: Port of device
         """
-        super().__init__(port)
+        super().__init__(port, **kwargs)
         self.mode(self.default_mode)
 
     def set_default_data_mode(self, mode):

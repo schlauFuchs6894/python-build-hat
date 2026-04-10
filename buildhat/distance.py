@@ -10,17 +10,18 @@ class DistanceSensor(Device):
     """Distance sensor
 
     :param port: Port of device
+    :param kwargs: Forwarded to :class:`Device` (e.g. ``hat_instance=``)
     :raises DeviceError: Occurs if there is no distance sensor attached to port
     """
 
-    def __init__(self, port, threshold_distance=100):
+    def __init__(self, port, threshold_distance=100, **kwargs):
         """
         Initialise distance sensor
 
         :param port: Port of device
         :param threshold_distance: Optional
         """
-        super().__init__(port)
+        super().__init__(port, **kwargs)
         self.on()
         self.mode(0)
         self._cond_data = Condition()

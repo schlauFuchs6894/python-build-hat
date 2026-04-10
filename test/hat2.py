@@ -7,20 +7,21 @@ from buildhat import Hat
 from gpiozero import OutputDevice
 import logging
 
+H1_RST_GPIO = 4
+H1_BOOT_GPIO = 22
+H2_RST_GPIO = 5
+H2_BOOT_GPIO = 6
+
 class TestHat(unittest.TestCase):
     """Test hat functions"""
 
-    H1_RST_GPIO = 4
-    H1_BOOT_GPIO = 22
-    H2_RST_GPIO = 5
-    H2_BOOT_GPIO = 6
 
     def test_vin(self):
         """Test voltage measure function"""
         h2 = Hat(
             device="/dev/ttyAMA4",
-            reset_gpio=TestHat.H2_RST_GPIO,
-            boot0_gpio=TestHat.H2_BOOT_GPIO,
+            reset_gpio=H2_RST_GPIO,
+            boot0_gpio=H2_BOOT_GPIO,
             debug=False,
         )
         vin = h2.get_vin()
@@ -37,8 +38,8 @@ class TestHat(unittest.TestCase):
 
         h2 = Hat(
             device="/dev/ttyAMA4",
-           reset_gpio=TestHat.H2_RST_GPIO,
-            boot0_gpio=TestHat.H2_BOOT_GPIO,
+            reset_gpio=H2_RST_GPIO,
+            boot0_gpio=H2_BOOT_GPIO,
             debug=False
         )
         logging.basicConfig(level=logging.INFO)
@@ -49,15 +50,15 @@ class TestHat(unittest.TestCase):
 
         # Read HAT 1
         rstH1.on()
-        rstH2 = OutputDevice(TestHat.H2_RST_GPIO, active_high=True, initial_value=True)
+        rstH2 = OutputDevice(H2_RST_GPIO, active_high=True, initial_value=True)
         rstH2.off()
         print("H2 Reset high")
         time.sleep(0.5)  # wait for HAT to boot after reset
         del rstH1
         h1 = Hat(
             device="/dev/ttyAMA0",
-            reset_gpio=TestHat.H1_RST_GPIO,
-            boot0_gpio=TestHat.H1_BOOT_GPIO,
+            reset_gpio=H1_RST_GPIO,
+            boot0_gpio=H1_BOOT_GPIO,
            debug=False
         )    
         logging.info("HAT 1:")
@@ -70,8 +71,8 @@ class TestHat(unittest.TestCase):
     def test_serial(self):
         """Test setting serial device"""
         Hat( device="/dev/ttyAMA4",
-            reset_gpio=TestHat.H2_RST_GPIO,
-            boot0_gpio=TestHat.H2_BOOT_GPIO,
+            reset_gpio=H2_RST_GPIO,
+            boot0_gpio=H2_BOOT_GPIO,
             debug=False
         )
 

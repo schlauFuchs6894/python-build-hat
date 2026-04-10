@@ -8,15 +8,16 @@ class Matrix(Device):
     """LED Matrix
 
     :param port: Port of device
+    :param kwargs: Forwarded to :class:`Device` (e.g. ``hat_instance=``)
     :raises DeviceError: Occurs if there is no LED matrix attached to port
     """
 
-    def __init__(self, port):
+    def __init__(self, port, **kwargs):
         """Initialise matrix
 
         :param port: Port of device
         """
-        super().__init__(port)
+        super().__init__(port, **kwargs)
         self.on()
         self.mode(2)
         self._matrix = [[(0, 0) for x in range(3)] for y in range(3)]

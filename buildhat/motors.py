@@ -15,15 +15,16 @@ class PassiveMotor(Device):
     """Passive Motor device
 
     :param port: Port of device
+    :param kwargs: Forwarded to :class:`Device` (e.g. ``hat_instance=``)
     :raises DeviceError: Occurs if there is no passive motor attached to port
     """
 
-    def __init__(self, port):
+    def __init__(self, port, **kwargs):
         """Initialise motor
 
         :param port: Port of device
         """
-        super().__init__(port)
+        super().__init__(port, **kwargs)
         self._default_speed = 20
         self._currentspeed = 0
         self.plimit(0.7)
@@ -97,15 +98,16 @@ class Motor(Device):
     """Motor device
 
     :param port: Port of device
+    :param kwargs: Forwarded to :class:`Device` (e.g. ``hat_instance=``)
     :raises DeviceError: Occurs if there is no motor attached to port
     """
 
-    def __init__(self, port):
+    def __init__(self, port, **kwargs):
         """Initialise motor
 
         :param port: Port of device
         """
-        super().__init__(port)
+        super().__init__(port, **kwargs)
         self.default_speed = 20
         self._currentspeed = 0
         if self._typeid in {38}:
@@ -498,18 +500,20 @@ class MotorPair:
 
     :param motora: One of the motors to drive
     :param motorb: Other motor in pair to drive
+    :param kwargs: Forwarded to both :class:`Motor` constructors
+        (e.g. ``hat_instance=``).
     :raises DeviceError: Occurs if there is no motor attached to port
     """
 
-    def __init__(self, leftport, rightport):
+    def __init__(self, leftport, rightport, **kwargs):
         """Initialise pair of motors
 
         :param leftport: Left motor port
         :param rightport:  Right motor port
         """
         super().__init__()
-        self._leftmotor = Motor(leftport)
-        self._rightmotor = Motor(rightport)
+        self._leftmotor = Motor(leftport,  **kwargs)
+        self._rightmotor = Motor(rightport,  **kwargs)
         self.default_speed = 20
         self._release = True
         self._rpm = False
