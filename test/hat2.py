@@ -44,7 +44,7 @@ class TestHat(unittest.TestCase):
     # ------------------------------------------------------------------
     def test_hat2_serial(self):
         """Test setting serial device"""
-        Hat( device="/dev/ttyAMA4",
+        h= Hat( device="/dev/ttyAMA4",
             reset_gpio=H2_RST_GPIO,
             boot0_gpio=H2_BOOT_GPIO,
             debug=False)
@@ -52,9 +52,10 @@ class TestHat(unittest.TestCase):
 
     def test_hat1_serial(self):
         """Registry returns the same instance for the same device path"""
-        h = Hat(device="/dev/ttyAM0",
-                reset_gpio=H1_RST_GPIO,
-                boot0_gpio=H1_BOOT_GPIO)
+        h= Hat(device="/dev/ttyAM0",
+            reset_gpio=H1_RST_GPIO,
+            boot0_gpio=H1_BOOT_GPIO,
+            debug=False)
         self.assertIs(h._instance, self.h1._instance)
 
     def test_hat2_vin(self):
