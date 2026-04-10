@@ -23,8 +23,8 @@ class Device:
     BOOT0_GPIO_NUMBER = 22
 
     # Registry: resolved_device_path -> BuildHAT
-    _registry: dict  = {}
-    _default_key      = None   # key inside _registry that is the current default
+    _registry: dict = {}
+    _default_key     = None   # key inside _registry that is the current default
 
     # Port-in-use tracking keyed by (canonical_device_path, port_index)
     # so the same port letter on two different HATs doesn't collide.
@@ -64,7 +64,7 @@ class Device:
     def _resolve_device(cls, device):
         """Return a stable canonical key for *device*.
 
-        ``None`` → resolved as ``/dev/serial0`` so that ``Hat()``,
+        ``None`` is resolved as ``/dev/serial0`` so that ``Hat()``,
         ``Hat("/dev/serial0")``, and ``Hat("/dev/ttyAMA0")`` (when serial0
         symlinks to ttyAMA0) all share one registry entry.
         """

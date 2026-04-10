@@ -8,8 +8,6 @@ from .devices import Device
 class Hat:
     """Enumerate and control a Build HAT.
 
-    Can be used in two ways:
-
     **Singleton / backward-compatible**::
 
         hat = Hat()               # reuses or creates the default instance
@@ -21,7 +19,6 @@ class Hat:
         hat_a = Hat("/dev/ttyAMA0")
         hat_b = Hat("/dev/ttyAMA1")
 
-        # Make hat_b the new default for Device() calls that omit hat_instance=
         old_default = Device.set_default_instance(hat_b._instance)
     """
 
@@ -57,28 +54,15 @@ class Hat:
     def set_default(hat):
         """Make *hat* the default instance used by all ``Device`` subclasses.
 
-        :param hat: A :class:`Hat` instance to promote, or ``None`` to clear
-            the default.
-        :returns: The *previous* default :class:`Hat`-like instance, wrapped
-            in a thin object that exposes the same ``set_default`` interface,
-            or ``None`` if there was no previous default.
+        :param hat: A :class:`Hat` instance to promote, or ``None`` to clear.
+        :returns: The previous default as a Hat-like wrapper, or ``None``.
         :rtype: Hat | None
-
-        Example::
-
-            hat_a = Hat("/dev/ttyAMA0")
-            hat_b = Hat("/dev/ttyAMA1")
-
-            previous = Hat.set_default(hat_b)
-            # previous._instance is hat_a._instance
         """
-        new_bhat = hat._instance if hat is not None else None
+        new_bhat  = hat._instance if hat is not None else None
         prev_bhat = Device.set_default_instance(new_bhat)
         if prev_bhat is None:
             return None
-        # Wrap the raw BuildHAT in a lightweight Hat-like shell so the caller
-        # can pass it straight back to set_default() if needed.
-        wrapper      = Hat.__new__(Hat)
+        wrapper            = Hat.__new__(Hat)
         wrapper.led_status = -1
         wrapper._instance  = prev_bhat
         return wrapper
@@ -90,8 +74,6 @@ class Hat:
     def get(self):
         """Return a dict describing all four ports.
 
-        :returns: ``{'A': {'typeid': …, 'connected': …, 'name': …,
-            'description': …}, …}``
         :rtype: dict
         """
         devices = {}
@@ -125,16 +107,21 @@ class Hat:
         """
         return self._instance.debug_filename
 
-    def get_vin(self):
+    def get_vin(self, timeout=5.0):
         """Input voltage on the power jack.
 
+        :param timeout: Seconds to wait for a response (default 5).
         :returns: Voltage in volts.
         :rtype: float
+        :raises TimeoutError: HAT did not respond within *timeout* seconds.
         """
         ftr = Future()
         self._instance.vinftr.append(ftr)
         self._instance.write(b"vin\r")
-        return ftr.result()
+        result = ftr.result(timeout=timeout)
+        if result is None:
+            raise TimeoutError("get_vin timed out — no response from HAT")
+        return result
 
     # ------------------------------------------------------------------
     # LED control
@@ -149,17 +136,14 @@ class Hat:
         """Set the two status LEDs.
 
         :param color: ``"orange"``, ``"green"``, ``"both"``, ``"off"``, or
-            ``"voltage"`` (default — colour tracks input voltage).
+            ``"voltage"`` (default).
         """
         mapping = {"orange": 1, "green": 2, "both": 3, "off": 0, "voltage": -1}
         if color in mapping:
             self._set_led(mapping[color])
 
     def orange_led(self, status=True):
-        """Turn the orange LED on or off.
-
-        :param status: ``True`` to enable, ``False`` to disable.
-        """
+        """Turn the orange LED on or off."""
         if status:
             if self.led_status in (3, 1):
                 return
@@ -171,10 +155,7 @@ class Hat:
                 self._set_led(2)
 
     def green_led(self, status=True):
-        """Turn the green LED on or off.
-
-        :param status: ``True`` to enable, ``False`` to disable.
-        """
+        """Turn the green LED on or off."""
         if status:
             if self.led_status in (3, 2):
                 return

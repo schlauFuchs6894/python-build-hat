@@ -4,13 +4,51 @@ import time
 import unittest
 
 from buildhat import Hat, Motor
+from buildhat.devices import Device
 from buildhat.exc import DeviceError, MotorError
 
+def deregister_all():
+    """Shut down all HATs and wipe the Device registry.
+
+    Leaves the process in a clean state so the next test can open ports
+    from scratch. Does NOT re-open the HAT — the next Motor() or Hat()
+    call will do that automatically.
+    """
+    for bhat in list(Device._registry.values()):
+        try:
+            bhat.shutdown()
+        except Exception:
+            pass
+    Device._registry.clear()
+    Device._default_key = None
+    Device._used.clear()
 
 class TestMotor(unittest.TestCase):
     """Test motors"""
 
     THRESHOLD_DISTANCE = 15
+
+    @classmethod
+    def setUpClass(cls):
+        """Open the HAT once for the whole class."""
+        Hat()   # default /dev/serial0 — registers and becomes default
+
+    def tearDown(self):
+        """Release all ports after every test so the next one starts clean.
+
+        We do NOT shut down the HAT between tests (that would take ~10 s to
+        re-init each time). We only clear the port-in-use table so Motor('A')
+        can be constructed again.  Any Motor local variables the test held
+        are already out of scope by the time tearDown runs, so __del__ will
+        have fired and cleared _used — but CPython's GC timing isn't
+        guaranteed, so we clear explicitly.
+        """
+        Device._used.clear()
+
+    @classmethod
+    def tearDownClass(cls):
+        """Full shutdown after all motor tests complete."""
+        deregister_all()
 
     def test_rotations(self):
         """Test motor rotating"""
