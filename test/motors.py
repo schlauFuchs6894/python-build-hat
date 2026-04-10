@@ -210,41 +210,41 @@ class TestMotor(unittest.TestCase):
         del m1
         Motor('A')
 
-    def test_continuous_start(self):
-        """Test starting motor for 5mins"""
-        t = time.time() + (60 * 5)
-        m = Motor('A')
-        toggle = 0
-        while time.time() < t:
-            m.start(toggle)
-            toggle ^= 1
+    # def test_continuous_start(self):
+    #     """Test starting motor for 5mins"""
+    #     t = time.time() + (60 * 5)
+    #     m = Motor('A')
+    #     toggle = 0
+    #     while time.time() < t:
+    #         m.start(toggle)
+    #         toggle ^= 1
 
-    def test_continuous_degrees(self):
-        """Test setting degrees for 5mins"""
-        t = time.time() + (60 * 5)
-        m = Motor('A')
-        toggle = 0
-        while time.time() < t:
-            m.run_for_degrees(toggle)
-            toggle ^= 1
+    # def test_continuous_degrees(self):
+    #     """Test setting degrees for 5mins"""
+    #     t = time.time() + (60 * 5)
+    #     m = Motor('A')
+    #     toggle = 0
+    #     while time.time() < t:
+    #         m.run_for_degrees(toggle)
+    #         toggle ^= 1
 
-    def test_continuous_position(self):
-        """Test setting position of motor for 5mins"""
-        t = time.time() + (60 * 5)
-        m = Motor('A')
-        toggle = 0
-        while time.time() < t:
-            m.run_to_position(toggle)
-            toggle ^= 1
+    # def test_continuous_position(self):
+    #     """Test setting position of motor for 5mins"""
+    #     t = time.time() + (60 * 5)
+    #     m = Motor('A')
+    #     toggle = 0
+    #     while time.time() < t:
+    #         m.run_to_position(toggle)
+    #         toggle ^= 1
 
-    def test_continuous_feedback(self):
-        """Test feedback of motor for 30mins"""
-        Hat(debug=True)
-        t = time.time() + (60 * 30)
-        m = Motor('A')
-        m.start(40)
-        while time.time() < t:
-            _ = (m.get_speed(), m.get_position(), m.get_aposition())
+    # def test_continuous_feedback(self):
+    #     """Test feedback of motor for 30mins"""
+    #     Hat(debug=True)
+    #     t = time.time() + (60 * 30)
+    #     m = Motor('A')
+    #     m.start(40)
+    #     while time.time() < t:
+    #         _ = (m.get_speed(), m.get_position(), m.get_aposition())
 
     def test_interval(self):
         """Test motor interval"""

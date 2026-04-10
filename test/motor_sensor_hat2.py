@@ -49,7 +49,7 @@ class TestMotor(unittest.TestCase):
         time.sleep(3)
         color = h1s1.get_color()
         print(f"Color: {color}")
-        h2l1.stop()
+        h2l1.off()
         h2m2.stop()
         h2l1.brightness(0)
         color = h1s1.get_color()
